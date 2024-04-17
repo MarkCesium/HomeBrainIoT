@@ -4,9 +4,9 @@
 
 int statusCode;
 unsigned long prevCall = 0;
-DynamicJsonDocument token(512);
-DynamicJsonDocument sensor(1024);
-DynamicJsonDocument device(1024);
+JsonDocument token;
+JsonDocument sensor;
+JsonDocument device;
 
 using namespace websockets;
 WebsocketsClient wsclient;
@@ -97,7 +97,7 @@ void hello_test()
 int auth(String url, String name, String pass)
 {
 	Serial.println("Authorization");
-	StaticJsonDocument<100> out;
+	JsonDocument out;
 	out["_username"] = name;
 	out["_password"] = pass;
 
