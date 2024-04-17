@@ -70,6 +70,39 @@ void connect()
 	Serial.println("--------------------------");
 }
 
+void onMessageCallback(WebsocketsMessage message)
+{
+	Serial.print("Got Message: ");
+	Serial.println(message.data());
+}
+
+void onEventsCallback(WebsocketsEvent event, String data)
+{
+	if (event == WebsocketsEvent::ConnectionOpened)
+	{
+		Serial.println("Connnection Opened");
+	}
+	else if (event == WebsocketsEvent::ConnectionClosed)
+	{
+		Serial.println("Connnection Closed");
+	}
+	else if (event == WebsocketsEvent::GotPing)
+	{
+		Serial.println("Got a Ping!");
+	}
+	else if (event == WebsocketsEvent::GotPong)
+	{
+		Serial.println("Got a Pong!");
+	}
+}
+
+void connectWS()
+{
+	wsclient.onMessage(onMessageCallback);
+	wsclient.onEvent(onEventsCallback);
+	wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+}
+
 void hello_test()
 {
 	while (true)
@@ -153,32 +186,6 @@ int loadDevices(String url)
 	http.end();
 
 	return httpCode;
-}
-
-void onMessageCallback(WebsocketsMessage message)
-{
-	Serial.print("Got Message: ");
-	Serial.println(message.data());
-}
-
-void onEventsCallback(WebsocketsEvent event, String data)
-{
-	if (event == WebsocketsEvent::ConnectionOpened)
-	{
-		Serial.println("Connnection Opened");
-	}
-	else if (event == WebsocketsEvent::ConnectionClosed)
-	{
-		Serial.println("Connnection Closed");
-	}
-	else if (event == WebsocketsEvent::GotPing)
-	{
-		Serial.println("Got a Ping!");
-	}
-	else if (event == WebsocketsEvent::GotPong)
-	{
-		Serial.println("Got a Pong!");
-	}
 }
 
 void setup()
@@ -298,9 +305,7 @@ void setup()
 
 		app.addPublisher(s);
 	}
-	wsclient.onMessage(onMessageCallback);
-	wsclient.onEvent(onEventsCallback);
-	wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+	connectWS();
 }
 
 void loop()
@@ -310,6 +315,13 @@ void loop()
 		if (wsclient.available())
 		{
 			wsclient.poll();
+		}
+		else
+		{
+			Serial.println("WS connection is closed. Reconnecting");
+			wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+			delay(100);
+			return;
 		}
 		app.callSensor();
 		unsigned long currentTime = millis();

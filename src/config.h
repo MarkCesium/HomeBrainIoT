@@ -14,7 +14,7 @@ const String GET_DEVICES = "/api/devices/get";
 
 // BLOCK user's classes, constants and params
 
-#define DHTType DHT11
+#define DHTType DHT22
 
 // ENDBLOCK user's classes, constants and params
 
