@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "Publisher.h"
 
 class PublisherContainer
@@ -63,35 +64,14 @@ void PublisherContainer::addPublisher(Publisher *publisher)
 
 String PublisherContainer::report()
 {
-	char stringBuffer[8] = "";
-	String out = String();
-	out.concat("{");
-	out.concat("\"data\":");
-	out.concat("[");
-
-	for (int i = 0; i < this->publisherCount; i++)
+	JsonDocument outJSON;
+	for (unsigned int i = 0; i < this->publisherCount; i++)
 	{
-		if (i > 0)
-		{
-			out.concat(",");
-		}
-
-		out.concat("{");
-		out.concat("\"");
-		out.concat("id");
-		out.concat("\"");
-		out.concat(":");
-		out.concat(itoa(this->publishers[i]->getId(), stringBuffer, 10));
-		out.concat(",");
-		out.concat("\"");
-		out.concat("value");
-		out.concat("\"");
-		out.concat(":");
-		out.concat(itoa(this->publishers[i]->getData(), stringBuffer, 10));
-		out.concat("}");
+		outJSON["data"][i]["id"] = this->publishers[i]->getId();
+		outJSON["data"][i]["value"] = this->publishers[i]->getData();
 	}
-	out.concat("]");
-	out.concat("}");
+	char output[256];
+	serializeJson(outJSON, output);
 
-	return out;
+	return output;
 }
