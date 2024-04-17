@@ -15,7 +15,7 @@ float getHumidity(Publisher *publisher)
 {
 	DHT dhtHum(publisher->getPinInput(), DHTType);
 	dhtHum.begin();
-	Hum = dhtHum.readHumidity(); // Gets the values of the humidity
+	float Hum = dhtHum.readHumidity(); // Gets the values of the humidity
 	Serial.printf("Humidity: %f\n", Hum);
 	return Hum;
 }
@@ -24,7 +24,7 @@ float getTemp(Publisher *publisher)
 {
 	DHT dhtTemp(publisher->getPinInput(), DHTType);
 	dhtTemp.begin();
-	Temp = dhtTemp.readTemperature(); // Gets the values of the temperature
+	float Temp = dhtTemp.readTemperature(); // Gets the values of the temperature
 	Serial.printf("Temperature: %f\n", Temp);
 	return Temp;
 }
@@ -66,8 +66,32 @@ void connect()
 	Serial.println("Connected!");
 	Serial.print("IP-address: ");
 	Serial.println(WiFi.localIP());
-	Serial.printf("AP: %s\n", WiFi.SSID());
+	Serial.println("AP: " + WiFi.SSID());
 	Serial.println("--------------------------");
+}
+
+void hello_test()
+{
+	while (true)
+	{
+		http.begin(client, "http://192.168.1.95/api/api-hello");
+
+		int code = http.GET();
+		if (code > 0)
+		{
+			String payload = http.getString();
+			Serial.print("Data is: ");
+			Serial.println(payload);
+			Serial.printf("Code is: %i\n", code);
+			break;
+		}
+		else
+		{
+			Serial.println("Failed");
+			Serial.printf("Code is: %i\n", code);
+		}
+		delay(500);
+	}
 }
 
 int auth(String url, String name, String pass)
@@ -83,8 +107,8 @@ int auth(String url, String name, String pass)
 	Serial.println(url);
 	// client.setInsecure();
 
-	http.setTimeout(8000);
-	client.setTimeout(8000);
+	// http.setTimeout(8000);
+	// client.setTimeout(8000);
 	http.begin(client, url);
 	http.addHeader("Content-Type", "application/json");
 	int httpCode = http.POST(data);
@@ -171,6 +195,8 @@ void setup()
 
 	// connect
 	connect();
+
+	hello_test();
 
 	// authorization
 	statusCode = auth("http://" + HOMEBRAIN + AUTH, USERNAME, PASSWORD);
