@@ -65,10 +65,21 @@ void PublisherContainer::addPublisher(Publisher *publisher)
 String PublisherContainer::report()
 {
 	JsonDocument outJSON;
+	unsigned int counterDevice = 0;
+	unsigned int counterSensor = 0;
 	for (unsigned int i = 0; i < this->publisherCount; i++)
 	{
-		outJSON["data"][i]["id"] = this->publishers[i]->getId();
-		outJSON["data"][i]["value"] = this->publishers[i]->getData();
+		if (this->publishers[i]->getType() == 2)
+		{
+			outJSON["data"]["sensors"][counterSensor]["id"] = this->publishers[i]->getId();
+			outJSON["data"]["sensors"][counterSensor]["value"] = this->publishers[i]->getData();
+			counterSensor++;
+		}
+		else
+		{
+			outJSON["data"]["devices"][counterDevice]["id"] = this->publishers[i]->getId();
+			counterDevice++;
+		}
 	}
 	char output[256];
 	serializeJson(outJSON, output);
