@@ -18,7 +18,7 @@ public:
 	void callSensor();
 	String report();
 	void addPublisher(Publisher *publisher);
-	Publisher *getPublisher(int number, Publisher *publisher);
+	Publisher *getPublisher(unsigned int id);
 };
 
 PublisherContainer::PublisherContainer(/* args */)
@@ -81,8 +81,21 @@ String PublisherContainer::report()
 			counterDevice++;
 		}
 	}
+	outJSON["type"] = "sendData";
 	char output[256];
 	serializeJson(outJSON, output);
 
 	return output;
+}
+
+Publisher *PublisherContainer::getPublisher(unsigned int id)
+{
+	for (unsigned int i = 0; i < this->publisherCount; i++)
+	{
+		if (this->publishers[i]->getId() == id)
+		{
+			return this->publishers[i];
+		}
+	}
+	return this->publishers[0];
 }
