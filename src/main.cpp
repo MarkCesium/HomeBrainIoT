@@ -29,6 +29,24 @@ float getTemp(Publisher *publisher)
 	return Temp;
 }
 
+float ledSwitch(Publisher *publisher)
+{
+	Serial.println("___________________LED_SWITCH__________________");
+	pinMode(publisher->getDevicePinOutput(), OUTPUT);
+	if (ledSwitchValue)
+	{
+		digitalWrite(publisher->getDevicePinOutput(), LOW);
+		ledSwitchValue = false;
+		return 0.0;
+	}
+	else
+	{
+		digitalWrite(publisher->getDevicePinOutput(), HIGH);
+		ledSwitchValue = true;
+		return 1.0;
+	}
+}
+
 void printAvaibleAP()
 {
 	int n = WiFi.scanNetworks();
@@ -74,6 +92,24 @@ void onMessageCallback(WebsocketsMessage message)
 {
 	Serial.print("Got Message: ");
 	Serial.println(message.data());
+	JsonDocument msgIn;
+	deserializeJson(msgIn, message.data());
+	unsigned int id = msgIn["msg"]["device"];
+	Serial.println(id);
+	msgIn.clear();
+
+	Publisher *publisher = app.getPublisher(id);
+	float result = publisher->callHandler();
+
+	JsonDocument msgOut;
+	msgOut["type"] = "sendDevice";
+	msgOut["data"]["id"] = id;
+	msgOut["data"]["value"] = result;
+	char output[256];
+	serializeJson(msgOut, output);
+	msgOut.clear();
+
+	wsclient.send(output);
 }
 
 void onEventsCallback(WebsocketsEvent event, String data)
@@ -280,7 +316,10 @@ void setup()
 	int deviceCount = device["data"].size();
 
 	// adding handlers
-	addDevicesHandlers();
+	// addDevicesHandlers();
+	String getLedHandlerName = "ledSwitch";
+	THandler getLedHandlerLink = &ledSwitch;
+	handlerContainer.addHandler(&getLedHandlerName, getLedHandlerLink);
 
 	for (int i = 0; i < deviceCount; i++)
 	{
@@ -329,7 +368,6 @@ void loop()
 			Serial.print("WS send message: ");
 			Serial.println(msg);
 		}
-		delay(100);
 	}
 	else
 	{
