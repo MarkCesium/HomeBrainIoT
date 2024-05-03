@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "Publisher.h"
 
 class PublisherContainer
@@ -17,7 +18,7 @@ public:
 	void callSensor();
 	String report();
 	void addPublisher(Publisher *publisher);
-	Publisher *getPublisher(int number, Publisher *publisher);
+	Publisher *getPublisher(unsigned int id);
 };
 
 PublisherContainer::PublisherContainer(/* args */)
@@ -37,7 +38,7 @@ void PublisherContainer::callSensor()
 
 	unsigned long int curentMillis = millis();
 	Publisher *sensor = this->publishers[this->currentSensor];
-	if ((curentMillis - sensor->getLastCall()) >= sensor->getRequestDelay())
+	if ((curentMillis - sensor->getLastCall()) >= sensor->getRequestDelay() && sensor->getType() == 2)
 	{
 		float data = sensor->callHandler();
 		sensor->setData(data);
@@ -63,35 +64,38 @@ void PublisherContainer::addPublisher(Publisher *publisher)
 
 String PublisherContainer::report()
 {
-	char stringBuffer[8] = "";
-	String out = String();
-	out.concat("{");
-	out.concat("\"data\":");
-	out.concat("[");
-
-	for (int i = 0; i < this->publisherCount; i++)
+	JsonDocument outJSON;
+	unsigned int counterDevice = 0;
+	unsigned int counterSensor = 0;
+	for (unsigned int i = 0; i < this->publisherCount; i++)
 	{
-		if (i > 0)
+		if (this->publishers[i]->getType() == 2)
 		{
-			out.concat(",");
+			outJSON["data"]["sensors"][counterSensor]["id"] = this->publishers[i]->getId();
+			outJSON["data"]["sensors"][counterSensor]["value"] = this->publishers[i]->getData();
+			counterSensor++;
 		}
-
-		out.concat("{");
-		out.concat("\"");
-		out.concat("id");
-		out.concat("\"");
-		out.concat(":");
-		out.concat(itoa(this->publishers[i]->getId(), stringBuffer, 10));
-		out.concat(",");
-		out.concat("\"");
-		out.concat("value");
-		out.concat("\"");
-		out.concat(":");
-		out.concat(itoa(this->publishers[i]->getData(), stringBuffer, 10));
-		out.concat("}");
+		else
+		{
+			outJSON["data"]["devices"][counterDevice]["id"] = this->publishers[i]->getId();
+			counterDevice++;
+		}
 	}
-	out.concat("]");
-	out.concat("}");
+	outJSON["type"] = "sendData";
+	char output[256];
+	serializeJson(outJSON, output);
 
-	return out;
+	return output;
+}
+
+Publisher *PublisherContainer::getPublisher(unsigned int id)
+{
+	for (unsigned int i = 0; i < this->publisherCount; i++)
+	{
+		if (this->publishers[i]->getId() == id)
+		{
+			return this->publishers[i];
+		}
+	}
+	return this->publishers[0];
 }

@@ -4,9 +4,9 @@
 
 int statusCode;
 unsigned long prevCall = 0;
-DynamicJsonDocument token(512);
-DynamicJsonDocument sensor(1024);
-DynamicJsonDocument device(1024);
+JsonDocument token;
+JsonDocument sensor;
+JsonDocument device;
 
 using namespace websockets;
 WebsocketsClient wsclient;
@@ -15,7 +15,7 @@ float getHumidity(Publisher *publisher)
 {
 	DHT dhtHum(publisher->getPinInput(), DHTType);
 	dhtHum.begin();
-	Hum = dhtHum.readHumidity(); // Gets the values of the humidity
+	float Hum = dhtHum.readHumidity(); // Gets the values of the humidity
 	Serial.printf("Humidity: %f\n", Hum);
 	return Hum;
 }
@@ -24,9 +24,27 @@ float getTemp(Publisher *publisher)
 {
 	DHT dhtTemp(publisher->getPinInput(), DHTType);
 	dhtTemp.begin();
-	Temp = dhtTemp.readTemperature(); // Gets the values of the temperature
+	float Temp = dhtTemp.readTemperature(); // Gets the values of the temperature
 	Serial.printf("Temperature: %f\n", Temp);
 	return Temp;
+}
+
+float ledSwitch(Publisher *publisher)
+{
+	Serial.println("___________________LED_SWITCH__________________");
+	pinMode(publisher->getDevicePinOutput(), OUTPUT);
+	if (ledSwitchValue)
+	{
+		digitalWrite(publisher->getDevicePinOutput(), LOW);
+		ledSwitchValue = false;
+		return 0.0;
+	}
+	else
+	{
+		digitalWrite(publisher->getDevicePinOutput(), HIGH);
+		ledSwitchValue = true;
+		return 1.0;
+	}
 }
 
 void printAvaibleAP()
@@ -66,14 +84,89 @@ void connect()
 	Serial.println("Connected!");
 	Serial.print("IP-address: ");
 	Serial.println(WiFi.localIP());
-	Serial.printf("AP: %s\n", WiFi.SSID());
+	Serial.println("AP: " + WiFi.SSID());
 	Serial.println("--------------------------");
+}
+
+void onMessageCallback(WebsocketsMessage message)
+{
+	Serial.print("Got Message: ");
+	Serial.println(message.data());
+	JsonDocument msgIn;
+	deserializeJson(msgIn, message.data());
+	unsigned int id = msgIn["msg"]["device"];
+	Serial.println(id);
+	msgIn.clear();
+
+	Publisher *publisher = app.getPublisher(id);
+	float result = publisher->callHandler();
+
+	JsonDocument msgOut;
+	msgOut["type"] = "sendDevice";
+	msgOut["data"]["id"] = id;
+	msgOut["data"]["value"] = result;
+	char output[256];
+	serializeJson(msgOut, output);
+	msgOut.clear();
+
+	wsclient.send(output);
+}
+
+void onEventsCallback(WebsocketsEvent event, String data)
+{
+	if (event == WebsocketsEvent::ConnectionOpened)
+	{
+		Serial.println("Connnection Opened");
+	}
+	else if (event == WebsocketsEvent::ConnectionClosed)
+	{
+		Serial.println("Connnection Closed");
+	}
+	else if (event == WebsocketsEvent::GotPing)
+	{
+		Serial.println("Got a Ping!");
+	}
+	else if (event == WebsocketsEvent::GotPong)
+	{
+		Serial.println("Got a Pong!");
+	}
+}
+
+void connectWS()
+{
+	wsclient.onMessage(onMessageCallback);
+	wsclient.onEvent(onEventsCallback);
+	wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+}
+
+void hello_test()
+{
+	while (true)
+	{
+		http.begin(client, "http://192.168.100.2/api/api-hello");
+
+		int code = http.GET();
+		if (code > 0)
+		{
+			String payload = http.getString();
+			Serial.print("Data is: ");
+			Serial.println(payload);
+			Serial.printf("Code is: %i\n", code);
+			break;
+		}
+		else
+		{
+			Serial.println("Failed");
+			Serial.printf("Code is: %i\n", code);
+		}
+		delay(500);
+	}
 }
 
 int auth(String url, String name, String pass)
 {
 	Serial.println("Authorization");
-	StaticJsonDocument<100> out;
+	JsonDocument out;
 	out["_username"] = name;
 	out["_password"] = pass;
 
@@ -83,8 +176,8 @@ int auth(String url, String name, String pass)
 	Serial.println(url);
 	// client.setInsecure();
 
-	http.setTimeout(8000);
-	client.setTimeout(8000);
+	// http.setTimeout(8000);
+	// client.setTimeout(8000);
 	http.begin(client, url);
 	http.addHeader("Content-Type", "application/json");
 	int httpCode = http.POST(data);
@@ -131,32 +224,6 @@ int loadDevices(String url)
 	return httpCode;
 }
 
-void onMessageCallback(WebsocketsMessage message)
-{
-	Serial.print("Got Message: ");
-	Serial.println(message.data());
-}
-
-void onEventsCallback(WebsocketsEvent event, String data)
-{
-	if (event == WebsocketsEvent::ConnectionOpened)
-	{
-		Serial.println("Connnection Opened");
-	}
-	else if (event == WebsocketsEvent::ConnectionClosed)
-	{
-		Serial.println("Connnection Closed");
-	}
-	else if (event == WebsocketsEvent::GotPing)
-	{
-		Serial.println("Got a Ping!");
-	}
-	else if (event == WebsocketsEvent::GotPong)
-	{
-		Serial.println("Got a Pong!");
-	}
-}
-
 void setup()
 {
 	Serial.begin(921600);
@@ -171,6 +238,8 @@ void setup()
 
 	// connect
 	connect();
+
+	hello_test();
 
 	// authorization
 	statusCode = auth("http://" + HOMEBRAIN + AUTH, USERNAME, PASSWORD);
@@ -191,7 +260,6 @@ void setup()
 	}
 
 	Serial.println(sensor["data"].as<String>());
-	delay(1000);
 	int sensorCount = sensor["data"].size();
 
 	// adding handlers
@@ -220,7 +288,6 @@ void setup()
 		if (!handlerContainer.getHandler(&tmp))
 		{
 			Serial.println("Handler not found in HandlerContainer. Sensor skipped");
-			delay(500);
 			continue;
 		}
 		THandler handler = handlerContainer.handler;
@@ -246,11 +313,13 @@ void setup()
 	}
 
 	Serial.println(device["data"].as<String>());
-	delay(1000);
 	int deviceCount = device["data"].size();
 
 	// adding handlers
-	addDevicesHandlers();
+	// addDevicesHandlers();
+	String getLedHandlerName = "ledSwitch";
+	THandler getLedHandlerLink = &ledSwitch;
+	handlerContainer.addHandler(&getLedHandlerName, getLedHandlerLink);
 
 	for (int i = 0; i < deviceCount; i++)
 	{
@@ -260,21 +329,18 @@ void setup()
 		if (!handlerContainer.getHandler(&tmp))
 		{
 			Serial.println("Handler not found in HandlerContainer. Device skipped");
-			delay(500);
 			continue;
 		}
 		THandler handler = handlerContainer.handler;
 		Publisher *s = new Publisher(
-			sensor["data"][i]["id"].as<int>(),
-			sensor["data"][i]["publisherDescriptions"]["d_pin_o"].as<int>(),
-			sensor["data"][i]["publisherDescriptions"]["d_rt"].as<int>(),
+			device["data"][i]["id"].as<int>(),
+			device["data"][i]["publisherDescriptions"]["d_pin_o"].as<int>(),
+			device["data"][i]["publisherDescriptions"]["d_rt"].as<int>(),
 			handler);
 
 		app.addPublisher(s);
 	}
-	wsclient.onMessage(onMessageCallback);
-	wsclient.onEvent(onEventsCallback);
-	wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+	connectWS();
 }
 
 void loop()
@@ -285,9 +351,16 @@ void loop()
 		{
 			wsclient.poll();
 		}
+		else
+		{
+			Serial.println("WS connection is closed. Reconnecting");
+			wsclient.connect("ws://" + HOMEBRAIN + ":" + WS_SENSOR_PORT);
+			delay(100);
+			return;
+		}
 		app.callSensor();
 		unsigned long currentTime = millis();
-		if (currentTime >= prevCall + 1000)
+		if (currentTime >= prevCall + 100)
 		{
 			prevCall = currentTime;
 			String msg = app.report();
@@ -295,7 +368,6 @@ void loop()
 			Serial.print("WS send message: ");
 			Serial.println(msg);
 		}
-		delay(100);
 	}
 	else
 	{

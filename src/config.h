@@ -1,7 +1,7 @@
 // BLOCK server info
 // Do not change this block!
 
-const String HOMEBRAIN = "192.168.43.213";
+const String HOMEBRAIN = "192.168.100.2";
 const String ROOT_PORT = "80";
 const String WS_SENSOR_PORT = "3003";
 const String AUTH = "/api/api-authentication";
@@ -14,8 +14,8 @@ const String GET_DEVICES = "/api/devices/get";
 
 // BLOCK user's classes, constants and params
 
-#define DHTType DHT11
-float Hum, Temp;
+#define DHTType DHT22
+bool ledSwitchValue = false;
 
 // ENDBLOCK user's classes, constants and params
 
@@ -32,6 +32,7 @@ float Hum, Temp;
 // Type here all your avaible WiFi points.
 // Ex: {(char *)"<Your-WiFi-Name>", (char *)"<Your-WiFi-Pass>"}
 char *AccessPoints[][2] = {
+	{(char *)"Keenetic-2206", (char *)"PDY5A8E2"},
 	{(char *)"HONOR 20", (char *)"87654321"},
 	{(char *)"Redmi 5+", (char *)"12345678"}
 	// {(char *)"TechnoPark", (char *)"test@TEST"}
@@ -42,8 +43,8 @@ char *AccessPoints[][2] = {
 	THE DATA MUST BE VALID WITH THE
 	DATA FROM HOMEBRAIN!
 */
-const String USERNAME = "testplate";
-const String PASSWORD = "111";
+const String USERNAME = "wemos";
+const String PASSWORD = "12345678";
 
 // ENDBLOCK user's info
 
