@@ -38,7 +38,7 @@ void PublisherContainer::callSensor()
 
 	unsigned long int curentMillis = millis();
 	Publisher *sensor = this->publishers[this->currentSensor];
-	if ((curentMillis - sensor->getLastCall()) >= sensor->getRequestDelay())
+	if ((curentMillis - sensor->getLastCall()) >= sensor->getRequestDelay() && sensor->getType() == 2)
 	{
 		float data = sensor->callHandler();
 		sensor->setData(data);

@@ -1,7 +1,7 @@
 // BLOCK server info
 // Do not change this block!
 
-const String HOMEBRAIN = "192.168.1.95";
+const String HOMEBRAIN = "192.168.100.2";
 const String ROOT_PORT = "80";
 const String WS_SENSOR_PORT = "3003";
 const String AUTH = "/api/api-authentication";

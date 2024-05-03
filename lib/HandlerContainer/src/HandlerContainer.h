@@ -36,13 +36,11 @@ bool HandlerContainer::getHandler(String *handlerName)
     for (unsigned int i = 0; i < this->handlersCount; i++)
     {
         Serial.print("handler in container: ");
-        delay(1000);
         const char *tmp = this->handlersName[i]->c_str();
         Serial.println(tmp);
         Serial.print("Search: ");
         const char *tmp1 = handlerName->c_str();
         Serial.println(tmp1);
-        delay(1000);
 
         if (this->handlersName[i]->equals(handlerName->c_str()))
         {

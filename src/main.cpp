@@ -107,7 +107,7 @@ void hello_test()
 {
 	while (true)
 	{
-		http.begin(client, "http://192.168.1.95/api/api-hello");
+		http.begin(client, "http://192.168.100.2/api/api-hello");
 
 		int code = http.GET();
 		if (code > 0)
@@ -224,7 +224,6 @@ void setup()
 	}
 
 	Serial.println(sensor["data"].as<String>());
-	delay(1000);
 	int sensorCount = sensor["data"].size();
 
 	// adding handlers
@@ -253,7 +252,6 @@ void setup()
 		if (!handlerContainer.getHandler(&tmp))
 		{
 			Serial.println("Handler not found in HandlerContainer. Sensor skipped");
-			delay(500);
 			continue;
 		}
 		THandler handler = handlerContainer.handler;
@@ -279,7 +277,6 @@ void setup()
 	}
 
 	Serial.println(device["data"].as<String>());
-	delay(1000);
 	int deviceCount = device["data"].size();
 
 	// adding handlers
@@ -293,14 +290,13 @@ void setup()
 		if (!handlerContainer.getHandler(&tmp))
 		{
 			Serial.println("Handler not found in HandlerContainer. Device skipped");
-			delay(500);
 			continue;
 		}
 		THandler handler = handlerContainer.handler;
 		Publisher *s = new Publisher(
-			sensor["data"][i]["id"].as<int>(),
-			sensor["data"][i]["publisherDescriptions"]["d_pin_o"].as<int>(),
-			sensor["data"][i]["publisherDescriptions"]["d_rt"].as<int>(),
+			device["data"][i]["id"].as<int>(),
+			device["data"][i]["publisherDescriptions"]["d_pin_o"].as<int>(),
+			device["data"][i]["publisherDescriptions"]["d_rt"].as<int>(),
 			handler);
 
 		app.addPublisher(s);
@@ -325,7 +321,7 @@ void loop()
 		}
 		app.callSensor();
 		unsigned long currentTime = millis();
-		if (currentTime >= prevCall + 1000)
+		if (currentTime >= prevCall + 100)
 		{
 			prevCall = currentTime;
 			String msg = app.report();
